@@ -1,0 +1,75 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: 'Georgia', serif;
+    --font-sans: 'Helvetica Neue', Arial, sans-serif;
+    
+    --color-gold: #C5A059;
+    --color-dark: #1A1A1A;
+    --color-luxury-gray: #F4F4F2;
+    --color-luxury-border: #E0DED7;
+    --color-accent: #E67E22;
+
+    --color-primary: var(--gold);
+    --color-primary-foreground: var(--dark);
+    --color-secondary: var(--luxury-gray);
+    --color-secondary-foreground: var(--dark);
+    --color-background: var(--luxury-gray);
+    --color-foreground: #333333;
+    --color-card: #FFFFFF;
+    --color-card-foreground: #333333;
+    --color-border: var(--luxury-border);
+    --color-input: var(--luxury-border);
+    --color-ring: var(--gold);
+    
+    --radius-lg: 8px;
+    --radius-md: 4px;
+    --radius-sm: 2px;
+}
+
+:root {
+    --background: #F4F4F2;
+    --foreground: #333333;
+    --card: #FFFFFF;
+    --card-foreground: #333333;
+    --popover: #FFFFFF;
+    --popover-foreground: #333333;
+    --primary: #C5A059;
+    --primary-foreground: #1A1A1A;
+    --secondary: #F4F4F2;
+    --secondary-foreground: #333333;
+    --muted: #F4F4F2;
+    --muted-foreground: #777777;
+    --accent: #E67E22;
+    --accent-foreground: #FFFFFF;
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: #E0DED7;
+    --input: #E0DED7;
+    --ring: #C5A059;
+    --radius: 0.5rem;
+}
+
+.dark {
+    --background: #1A1A1A;
+    --foreground: #F4F4F2;
+    --primary: #C5A059;
+    --primary-foreground: #1A1A1A;
+    --border: rgba(255, 255, 255, 0.1);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+  h1, h2, h3, h4, .font-display {
+    @apply font-heading italic;
+  }
+}

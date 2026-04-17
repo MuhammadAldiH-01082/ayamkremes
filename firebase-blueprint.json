@@ -1,0 +1,90 @@
+{
+  "entities": {
+    "Menu": {
+      "title": "Catering Menu",
+      "description": "Daftar menu catering Ayam Kremes Jakarta",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nama menu" },
+        "description": { "type": "string", "description": "Deskripsi menu" },
+        "price": { "type": "number", "description": "Harga dasar" },
+        "category": { "type": "string", "description": "Kategori menu" },
+        "imageUrl": { "type": "string", "description": "URL gambar menu" },
+        "isMain": { "type": "boolean", "description": "Apakah ini menu utama" },
+        "variations": {
+          "type": "array",
+          "description": "Variasi porsi atau isi",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "price": { "type": "number" }
+            }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "category", "price"]
+    },
+    "Promo": {
+      "title": "Promotion",
+      "description": "Promo catering",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "discountPercent": { "type": "number" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "active"]
+    },
+    "Order": {
+      "title": "Customer Order",
+      "description": "Pesanan pelanggan katering",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["Pending", "Processing", "Completed", "Cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "Pesan dalam obrolan",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "menus/{menuId}": {
+      "schema": "Menu",
+      "description": "Koleksi menu catering"
+    },
+    "promos/{promoId}": {
+      "schema": "Promo",
+      "description": "Koleksi promo aktif"
+    },
+    "orders/{orderId}": {
+      "schema": "Order",
+      "description": "Koleksi pesanan"
+    },
+    "chats/{userId}": {
+      "schema": "object",
+      "description": "Ruang obrolan pengguna"
+    },
+    "chats/{userId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Koleksi pesan dalam obrolan"
+    }
+  }
+}
