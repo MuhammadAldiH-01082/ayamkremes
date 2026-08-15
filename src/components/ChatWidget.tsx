@@ -2,12 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { chatService } from '@/services/dataService';
 import { ChatMessage } from '@/types';
-import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { MessageCircle, X, Send, UtensilsCrossed } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ScrollArea } from './ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function ChatWidget() {
   const { user, login, isAdmin } = useAuth();

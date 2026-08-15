@@ -2,5 +2,5 @@
   "name": "Ayam Kremes Jakarta",
   "description": "Layanan catering profesional dengan menu andalan ayam kremes, ayam bakar, nasi kuning, dan nasi tumpeng.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -1,160 +1,187 @@
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCart } from '@/contexts/CartContext';
-import { Button } from './ui/button';
-import { LogIn, LogOut, LayoutDashboard, UtensilsCrossed, ShoppingBag, Trash2, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from './ui/sheet';
-import { ScrollArea } from './ui/scroll-area';
-import { Separator } from './ui/separator';
-import { orderService } from '@/services/dataService';
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { 
+  Utensils, 
+  MessageCircle, 
+  Menu as MenuIcon, 
+  X, 
+  Sparkles,
+  Lock
+} from 'lucide-react';
+import { CONTACT_INFO } from '@/data/defaultCatalogue';
 
 export default function Navbar() {
-  const { user, login, logout, isAdmin } = useAuth();
-  const { cart, totalItems, totalPrice, removeFromCart, clearCart } = useCart();
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const { login, isAdmin } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const handleCheckout = async () => {
-    if (!user) {
-      toast.error("Silakan login untuk memesan");
-      login();
-      return;
-    }
-    
-    if (cart.length === 0) return;
-
-    try {
-      setIsCheckingOut(true);
-      await orderService.add({
-        customerName: user.displayName,
-        customerEmail: user.email,
-        items: cart,
-        totalAmount: totalPrice,
-        status: 'Pending'
-      });
-      toast.success("Pesanan berhasil dikirim! Kami akan segera menghubungi Anda.");
-      clearCart();
-    } catch (e) {
-      toast.error("Gagal mengirim pesanan");
-    } finally {
-      setIsCheckingOut(false);
+  const scrollToSection = (id: string) => {
+    setIsMobileMenuOpen(false);
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
+  const openWhatsApp = () => {
+    const message = `Halo ${CONTACT_INFO.brandName}, saya ingin pesan menu / konsultasi katering. Boleh minta info pricelist?`;
+    window.open(`https://wa.me/${CONTACT_INFO.whatsapp}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-luxury-border bg-dark py-4 shadow-md">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link to="/" className="flex items-center space-x-2">
-          <UtensilsCrossed className="h-6 w-6 text-gold" />
-          <span className="text-2xl font-bold tracking-tight text-white font-heading italic">
-            Ayam Kremes <span className="text-gold">Jakarta</span>
-          </span>
-        </Link>
-
-        <div className="flex items-center space-x-6">
-          <Link to="/" className="text-sm font-medium text-white/80 transition-colors hover:text-gold uppercase tracking-wider">Home</Link>
+    <header className="sticky top-0 z-50 w-full bg-[#FAF4E8] text-[#231F20] border-b border-[#E8DFC8] shadow-xs">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-20">
           
-          {/* Cart Drawer */}
-          <Sheet>
-            <SheetTrigger
-              render={
-                <Button variant="ghost" size="sm" className="relative text-gold hover:text-white hover:bg-gold/20">
-                  <ShoppingBag className="h-5 w-5" />
-                  {totalItems > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">
-                      {totalItems}
-                    </span>
-                  )}
-                </Button>
-              }
-            />
-            <SheetContent className="bg-luxury-gray border-l-gold border-l-4 w-[400px] sm:w-[540px]">
-              <SheetHeader className="pb-6 border-b border-luxury-border">
-                <SheetTitle className="text-2xl font-heading italic text-dark">Keranjang Pesanan</SheetTitle>
-              </SheetHeader>
-              
-              <ScrollArea className="h-[calc(100vh-250px)] py-6">
-                {cart.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-40 text-dark/30 uppercase tracking-widest text-xs font-bold font-sans">
-                     Keranjang Kosong
-                  </div>
-                ) : (
-                  <div className="space-y-6 px-1">
-                    {cart.map((item, idx) => (
-                      <div key={`${item.id}-${idx}`} className="flex gap-4 group">
-                        <div className="h-16 w-16 bg-white border border-luxury-border flex-shrink-0 overflow-hidden">
-                           <img src={item.imageUrl || undefined} alt={item.name} className="h-full w-full object-cover" />
-                        </div>
-                        <div className="flex-grow">
-                          <div className="flex justify-between">
-                            <h4 className="font-bold text-dark text-sm uppercase tracking-tight">{item.name}</h4>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-6 w-6 text-dark/20 hover:text-destructive"
-                              onClick={() => removeFromCart(item.id, item.selectedVariation?.name)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <p className="text-[10px] text-dark/40 uppercase font-bold tracking-tighter">
-                            {item.selectedVariation ? item.selectedVariation.name : 'Standar'} x {item.quantity}
-                          </p>
-                          <p className="font-bold text-gold text-sm mt-1">
-                            Rp{((item.selectedVariation?.price || item.price) * item.quantity).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-
-              <div className="absolute bottom-0 left-0 right-0 p-8 border-t border-luxury-border bg-white shadow-2xl">
-                 <div className="flex justify-between items-center mb-6">
-                    <span className="text-xs font-bold text-dark/40 uppercase tracking-widest">Total Belanja</span>
-                    <span className="text-2xl font-black text-dark font-sans">Rp{totalPrice.toLocaleString()}</span>
-                 </div>
-                 <Button 
-                  disabled={cart.length === 0 || isCheckingOut}
-                  onClick={handleCheckout}
-                  className="w-full bg-dark text-gold hover:bg-gold hover:text-dark h-14 rounded-none font-bold uppercase tracking-[0.2em] text-xs transition-all"
-                 >
-                   {isCheckingOut ? 'Memproses...' : 'Konfirmasi Pesanan →'}
-                 </Button>
-                 <p className="text-[10px] text-center mt-4 text-dark/40 font-medium">Melalui sistem ini katering akan menerima pesanan secara langsung.</p>
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          {isAdmin && (
-            <Link to="/admin">
-              <Button variant="ghost" size="sm" className="hidden md:flex items-center space-x-1 text-gold hover:text-white hover:bg-gold/20">
-                <LayoutDashboard className="h-4 w-4" />
-                <span className="uppercase text-xs font-semibold">Admin Panel</span>
-              </Button>
-            </Link>
-          )}
-
-          {user ? (
-            <div className="flex items-center space-x-4">
-              <div className="hidden flex-col items-end md:flex">
-                <span className="text-xs font-semibold text-gold uppercase">{user.displayName}</span>
-                <span className="text-[10px] text-white/50">{user.email}</span>
-              </div>
-              <Button variant="outline" size="sm" onClick={logout} className="border-gold text-gold hover:bg-gold hover:text-dark">
-                <LogOut className="h-4 w-4 mr-2" /> Logout
-              </Button>
+          {/* Brand Logo - Playful Retro Style */}
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-11 h-11 rounded-2xl bg-[#FF5E14] text-white flex items-center justify-center shadow-sm group-hover:rotate-6 transition-transform">
+              <Utensils className="w-6 h-6 stroke-[2.5]" />
             </div>
-          ) : (
-            <Button size="sm" onClick={login} className="bg-gold text-dark hover:bg-gold/90 font-bold uppercase text-xs px-6">
-              <LogIn className="h-4 w-4 mr-2" /> Client Login
-            </Button>
-          )}
+            <div>
+              <div className="text-xl sm:text-2xl font-display font-black tracking-tight text-[#231F20] uppercase leading-none">
+                Ayam Kremes <span className="text-[#FF5E14]">Jakarta</span>
+              </div>
+              <p className="text-[11px] font-script text-[#7BA03C] font-bold text-sm tracking-wide -mt-0.5">
+                gurih & renyah sejak 2018
+              </p>
+            </div>
+          </Link>
+
+          {/* Clean Desktop Navigation */}
+          <nav className="hidden lg:flex items-center space-x-2 font-display font-bold text-sm text-[#4A3E39] uppercase tracking-wide">
+            <button 
+              onClick={() => scrollToSection('kategori')} 
+              className="px-4 py-2 rounded-full hover:text-[#FF5E14] hover:bg-[#F3ECE0] transition-colors"
+            >
+              Kategori
+            </button>
+            <button 
+              onClick={() => scrollToSection('katalog')} 
+              className="px-4 py-2 rounded-full hover:text-[#FF5E14] hover:bg-[#F3ECE0] transition-colors"
+            >
+              Katalog Menu
+            </button>
+            <button 
+              onClick={() => scrollToSection('katering')} 
+              className="px-4 py-2 rounded-full hover:text-[#FF5E14] hover:bg-[#F3ECE0] transition-colors"
+            >
+              Katering & Bento
+            </button>
+            <button 
+              onClick={() => scrollToSection('keunggulan')} 
+              className="px-4 py-2 rounded-full hover:text-[#FF5E14] hover:bg-[#F3ECE0] transition-colors"
+            >
+              Tentang Kami
+            </button>
+            <button 
+              onClick={() => scrollToSection('lokasi')} 
+              className="px-4 py-2 rounded-full hover:text-[#FF5E14] hover:bg-[#F3ECE0] transition-colors"
+            >
+              Lokasi & Kontak
+            </button>
+          </nav>
+
+          {/* Action Button - Big Punchy Pill */}
+          <div className="hidden sm:flex items-center gap-3">
+            {isAdmin && (
+              <Link to="/admin">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="rounded-full border-[#E8DFC8] bg-white text-[#231F20] hover:bg-[#F3ECE0] text-xs font-bold font-display"
+                >
+                  <Lock className="w-3.5 h-3.5 mr-1" />
+                  Admin
+                </Button>
+              </Link>
+            )}
+
+            <button
+              onClick={openWhatsApp}
+              className="bg-[#FF5E14] hover:bg-[#E04F00] text-white font-display font-black px-6 py-3 text-sm rounded-full shadow-md hover:shadow-lg transition-all hover:scale-105 uppercase tracking-wider flex items-center gap-2"
+            >
+              <MessageCircle className="w-4 h-4 fill-current" />
+              <span>Pesan via WA</span>
+            </button>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <div className="flex lg:hidden items-center gap-2">
+            <button
+              onClick={openWhatsApp}
+              className="bg-[#FF5E14] text-white font-display font-bold px-3.5 py-2 text-xs rounded-full flex items-center gap-1.5"
+            >
+              <MessageCircle className="w-3.5 h-3.5 fill-current" />
+              WA
+            </button>
+
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2.5 rounded-2xl bg-[#F3ECE0] text-[#231F20] hover:bg-[#E8DFC8]"
+              aria-label="Toggle Menu"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
       </div>
-    </nav>
+
+      {/* Clean Mobile Dropdown */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden bg-[#FAF4E8] border-t border-[#E8DFC8] px-4 pt-3 pb-6 space-y-2 shadow-xl animate-in slide-in-from-top-2">
+          <button 
+            onClick={() => scrollToSection('kategori')}
+            className="w-full text-left px-4 py-3 rounded-2xl font-display font-bold text-[#231F20] hover:bg-[#F3ECE0]"
+          >
+            🍗 Kategori Pilihan
+          </button>
+          <button 
+            onClick={() => scrollToSection('katalog')}
+            className="w-full text-left px-4 py-3 rounded-2xl font-display font-bold text-[#231F20] hover:bg-[#F3ECE0]"
+          >
+            📋 Katalog Menu Lengkap
+          </button>
+          <button 
+            onClick={() => scrollToSection('katering')}
+            className="w-full text-left px-4 py-3 rounded-2xl font-display font-bold text-[#231F20] hover:bg-[#F3ECE0]"
+          >
+            🍱 Layanan Katering & Bento
+          </button>
+          <button 
+            onClick={() => scrollToSection('keunggulan')}
+            className="w-full text-left px-4 py-3 rounded-2xl font-display font-bold text-[#231F20] hover:bg-[#F3ECE0]"
+          >
+            ✨ Tentang & Resep Rempah
+          </button>
+          <button 
+            onClick={() => scrollToSection('lokasi')}
+            className="w-full text-left px-4 py-3 rounded-2xl font-display font-bold text-[#231F20] hover:bg-[#F3ECE0]"
+          >
+            📍 Lokasi & Kontak Hub
+          </button>
+
+          <div className="pt-3 border-t border-[#E8DFC8] space-y-2">
+            <button
+              onClick={openWhatsApp}
+              className="w-full bg-[#FF5E14] text-white font-display font-black py-3 rounded-full flex items-center justify-center gap-2 uppercase tracking-wide text-sm shadow-md"
+            >
+              <MessageCircle className="w-5 h-5 fill-current" />
+              Chat WhatsApp Sekarang
+            </button>
+            {!isAdmin && (
+              <button 
+                onClick={() => { login(); setIsMobileMenuOpen(false); }}
+                className="w-full text-center text-xs text-[#78716C] py-2"
+              >
+                Login Pengelola
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </header>
   );
 }
+

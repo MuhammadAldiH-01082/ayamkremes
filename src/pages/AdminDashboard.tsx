@@ -204,7 +204,7 @@ function MenuManager() {
                 >
                   {formData.imageUrl ? (
                     <>
-                      <img src={formData.imageUrl || undefined} className="h-full w-full object-cover" />
+                      <img src={formData.imageUrl} alt="Menu Preview" className="h-full w-full object-cover" />
                       <div className="absolute inset-0 bg-dark/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                          <Upload className="text-white h-6 w-6" />
                       </div>
@@ -310,8 +310,12 @@ function MenuManager() {
                 <tr key={menu.id} className="hover:bg-luxury-gray transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 bg-luxury-gray border border-luxury-border flex-shrink-0 overflow-hidden">
-                         <img src={menu.imageUrl || undefined} alt="" className="h-full w-full object-cover" />
+                      <div className="h-12 w-12 bg-luxury-gray border border-luxury-border flex-shrink-0 overflow-hidden flex items-center justify-center">
+                         {menu.imageUrl ? (
+                           <img src={menu.imageUrl} alt={menu.name} className="h-full w-full object-cover" />
+                         ) : (
+                           <Utensils className="h-5 w-5 text-dark/30" />
+                         )}
                       </div>
                       <div>
                         <div className="font-bold text-dark">{menu.name}</div>
@@ -680,7 +684,7 @@ function PromoManager() {
               >
                 {formData.imageUrl ? (
                   <>
-                    <img src={formData.imageUrl || undefined} className="h-full w-full object-cover" />
+                    <img src={formData.imageUrl} alt="Campaign Banner" className="h-full w-full object-cover" />
                     <div className="absolute inset-0 bg-dark/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                        <Upload className="text-white h-6 w-6" />
                     </div>

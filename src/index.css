@@ -1,74 +1,79 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@fontsource-variable/geist";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: 'Georgia', serif;
-    --font-sans: 'Helvetica Neue', Arial, sans-serif;
+    --font-heading: 'Fredoka', 'Plus Jakarta Sans', cursive, sans-serif;
+    --font-display: 'Fredoka', sans-serif;
+    --font-script: 'Caveat', cursive;
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     
-    --color-gold: #C5A059;
-    --color-dark: #1A1A1A;
-    --color-luxury-gray: #F4F4F2;
-    --color-luxury-border: #E0DED7;
-    --color-accent: #E67E22;
+    --color-brand-orange: #FF5E14;
+    --color-brand-yellow: #FEBD11;
+    --color-brand-green: #7BA03C;
+    --color-brand-blue: #4BB3FD;
+    --color-brand-pink: #F47B89;
+    --color-brand-cream: #FAF4E8;
+    --color-brand-sand: #F3ECE0;
+    --color-brand-ink: #231F20;
 
-    --color-primary: var(--gold);
-    --color-primary-foreground: var(--dark);
-    --color-secondary: var(--luxury-gray);
-    --color-secondary-foreground: var(--dark);
-    --color-background: var(--luxury-gray);
-    --color-foreground: #333333;
+    --color-primary: #FF5E14;
+    --color-primary-foreground: #FFFFFF;
+    --color-secondary: #F3ECE0;
+    --color-secondary-foreground: #231F20;
+    --color-background: #FAF4E8;
+    --color-foreground: #231F20;
     --color-card: #FFFFFF;
-    --color-card-foreground: #333333;
-    --color-border: var(--luxury-border);
-    --color-input: var(--luxury-border);
-    --color-ring: var(--gold);
+    --color-card-foreground: #231F20;
+    --color-border: #E8DFC8;
+    --color-input: #E8DFC8;
+    --color-ring: #FF5E14;
     
-    --radius-lg: 8px;
-    --radius-md: 4px;
-    --radius-sm: 2px;
+    --radius-3xl: 24px;
+    --radius-2xl: 18px;
+    --radius-xl: 14px;
+    --radius-lg: 12px;
+    --radius-md: 8px;
 }
 
 :root {
-    --background: #F4F4F2;
-    --foreground: #333333;
+    --background: #FAF4E8;
+    --foreground: #231F20;
     --card: #FFFFFF;
-    --card-foreground: #333333;
+    --card-foreground: #231F20;
     --popover: #FFFFFF;
-    --popover-foreground: #333333;
-    --primary: #C5A059;
-    --primary-foreground: #1A1A1A;
-    --secondary: #F4F4F2;
-    --secondary-foreground: #333333;
-    --muted: #F4F4F2;
-    --muted-foreground: #777777;
-    --accent: #E67E22;
-    --accent-foreground: #FFFFFF;
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: #E0DED7;
-    --input: #E0DED7;
-    --ring: #C5A059;
-    --radius: 0.5rem;
-}
-
-.dark {
-    --background: #1A1A1A;
-    --foreground: #F4F4F2;
-    --primary: #C5A059;
-    --primary-foreground: #1A1A1A;
-    --border: rgba(255, 255, 255, 0.1);
+    --popover-foreground: #231F20;
+    --primary: #FF5E14;
+    --primary-foreground: #FFFFFF;
+    --secondary: #F3ECE0;
+    --secondary-foreground: #231F20;
+    --muted: #F3ECE0;
+    --muted-foreground: #78716C;
+    --accent: #FEBD11;
+    --accent-foreground: #231F20;
+    --destructive: #DC2626;
+    --border: #E8DFC8;
+    --input: #E8DFC8;
+    --ring: #FF5E14;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    background-color: #FAF4E8;
+    color: #231F20;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4, .font-display {
-    @apply font-heading italic;
+  h1, h2, h3, h4, .font-heading, .font-display {
+    font-family: 'Fredoka', 'Plus Jakarta Sans', sans-serif;
   }
 }
+
+.font-script {
+  font-family: 'Caveat', cursive;
+}
+
