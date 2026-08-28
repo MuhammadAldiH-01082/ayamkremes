@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { menuService, promoService } from '@/services/dataService';
 import { MenuItem, Promo, Category } from '@/types';
 import { DEFAULT_MENUS, DEFAULT_PROMOS } from '@/data/defaultCatalogue';
+import { useAuth } from '@/contexts/AuthContext';
 import Hero from '@/components/Hero';
+import MemberWelcomeBanner from '@/components/MemberWelcomeBanner';
 import CatalogueSection from '@/components/CatalogueSection';
 import CateringHubSection from '@/components/CateringHubSection';
 import WhyChooseUs from '@/components/WhyChooseUs';
@@ -10,14 +12,22 @@ import TestimonialsSection from '@/components/TestimonialsSection';
 import ContactAndLocationSection from '@/components/ContactAndLocationSection';
 import FAQSection from '@/components/FAQSection';
 import MenuDetailModal from '@/components/MenuDetailModal';
+import MemberPortalModal from '@/components/MemberPortalModal';
+import CartDrawer from '@/components/CartDrawer';
+import FloatingCartButton from '@/components/FloatingCartButton';
 import FloatingWhatsApp from '@/components/FloatingWhatsApp';
 
 export default function Home() {
+  const { user } = useAuth();
   const [menus, setMenus] = useState<MenuItem[]>(DEFAULT_MENUS);
   const [promos, setPromos] = useState<Promo[]>(DEFAULT_PROMOS);
   const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
   const [activeCategory, setActiveCategory] = useState<Category>('Semua');
   const [loading, setLoading] = useState(true);
+
+  // Member Portal state from Home banner
+  const [isPortalOpen, setIsPortalOpen] = useState(false);
+  const [portalTab, setPortalTab] = useState<'orders' | 'profile' | 'newOrder'>('orders');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,45 +69,68 @@ export default function Home() {
     }
   };
 
+  const handleOpenMemberPortal = (tab: 'orders' | 'profile' | 'newOrder' = 'orders') => {
+    setPortalTab(tab);
+    setIsPortalOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-[#FAF4E8] text-[#231F20] flex flex-col selection:bg-[#FEBD11] selection:text-[#231F20]">
       
-      {/* 1. Hero Section with 4 Category Tiles */}
+      {/* 1. Member Welcome Bar (Only visible when user is logged in) */}
+      <MemberWelcomeBanner onOpenPortal={handleOpenMemberPortal} />
+
+      {/* 2. Hero Section with 4 Category Tiles */}
       <Hero
         onExploreClick={(cat) => scrollToSection('katalog', cat)}
         onCateringClick={() => scrollToSection('katering')}
       />
 
-      {/* 2. Simplified Menu Catalogue Section */}
+      {/* 3. Interactive Menu Catalogue Section (With Add to Cart System) */}
       <CatalogueSection
         menus={menus}
         initialCategory={activeCategory}
         onSelectMenu={(menu) => setSelectedMenu(menu)}
       />
 
-      {/* 3. Catering & Corporate Events Hub */}
+      {/* 4. Catering & Bento Hub (With Catering Package Catalog & WhatsApp Inquiry) */}
       <CateringHubSection />
 
-      {/* 4. Why Choose Us & Heritage Story */}
+      {/* 5. Why Choose Us & Heritage Story / Portfolio */}
       <WhyChooseUs />
 
-      {/* 5. Customer Testimonials */}
+      {/* 6. Customer Testimonials */}
       <TestimonialsSection />
 
-      {/* 6. Central Contact Hub & Jakarta Location */}
+      {/* 7. Central Contact Hub & Jakarta Kitchen Location */}
       <ContactAndLocationSection />
 
-      {/* 7. FAQ Section */}
+      {/* 8. FAQ Section */}
       <FAQSection />
 
-      {/* 8. Menu Detail Popup Modal */}
+      {/* 9. Menu Detail Popup Modal */}
       <MenuDetailModal
         item={selectedMenu}
         isOpen={!!selectedMenu}
         onClose={() => setSelectedMenu(null)}
       />
 
-      {/* 9. Floating WhatsApp Quick Support */}
+      {/* 10. Shopping Cart Drawer with WhatsApp Order Form */}
+      <CartDrawer />
+
+      {/* 11. Floating Quick Cart Button */}
+      <FloatingCartButton />
+
+      {/* 12. Member Portal Modal (Triggered by Member Bar / Navbar) */}
+      {user && (
+        <MemberPortalModal
+          isOpen={isPortalOpen}
+          defaultTab={portalTab}
+          onClose={() => setIsPortalOpen(false)}
+        />
+      )}
+
+      {/* 13. Floating WhatsApp Support for Catering Consultation */}
       <FloatingWhatsApp />
       
     </div>

@@ -63,17 +63,41 @@ export interface ChatRoom {
 export interface CartItem extends MenuItem {
   quantity: number;
   selectedVariation?: Variation;
+  itemNotes?: string;
 }
+
+export type OrderStatus = 'Pending' | 'Diproses' | 'Dikirim' | 'Selesai' | 'Dibatalkan';
 
 export interface Order {
   id: string;
   userId: string;
   customerName: string;
+  customerPhone?: string;
   customerEmail: string;
-  items: CartItem[];
+  deliveryAddress?: string;
+  eventType?: string;
+  eventDate?: string;
+  eventTime?: string;
+  items?: CartItem[] | any[];
+  paxCount?: number;
+  selectedPackage?: string;
+  notes?: string;
   totalAmount: number;
-  status: 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
+  status: OrderStatus;
   createdAt: any;
 }
+
+export type UserRole = 'user' | 'admin';
+
+export interface UserProfile {
+  uid: string;
+  displayName: string;
+  email: string;
+  role: UserRole;
+  phone?: string;
+  address?: string;
+  memberSince?: string;
+}
+
 
 

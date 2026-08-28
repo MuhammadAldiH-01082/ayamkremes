@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,86 +8,465 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { menuService, promoService, orderService, chatService } from '@/services/dataService';
-import { MenuItem, Promo, Category, Variation, Order, ChatRoom, ChatMessage } from '@/types';
-import { Plus, Trash2, Edit3, Save, X, Utensils, Tag, Package, Clock, CircleDashed, Upload, MessageSquare, Send } from 'lucide-react';
+import { 
+  menuService, 
+  promoService, 
+  orderService, 
+  chatService, 
+  databaseResetService 
+} from '@/services/dataService';
+import { MenuItem, Promo, Category, Variation, Order, ChatRoom, ChatMessage, OrderStatus } from '@/types';
+import { 
+  Plus, 
+  Trash2, 
+  Edit3, 
+  Save, 
+  X, 
+  Utensils, 
+  Tag, 
+  Package, 
+  Clock, 
+  Upload, 
+  MessageSquare, 
+  Send, 
+  RotateCcw, 
+  AlertTriangle, 
+  CheckCircle2, 
+  ShieldCheck, 
+  ExternalLink, 
+  LogOut, 
+  Phone, 
+  Calendar, 
+  MapPin,
+  Flame,
+  Search,
+  Sparkles
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { fileToBase64 } from '@/lib/imageUtils';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, ADMIN_EMAIL } from '@/contexts/AuthContext';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { CONTACT_INFO } from '@/data/defaultCatalogue';
 
 export default function AdminDashboard() {
+  const { userProfile, user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [isResetting, setIsResetting] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const handleResetDatabase = async () => {
+    setIsResetting(true);
+    try {
+      const result = await databaseResetService.resetAndSeedDatabase();
+      toast.success(`Database berhasil di-reset & diisi ulang! (${result.menusCount} Menu, ${result.promosCount} Promo)`);
+      setShowResetConfirm(false);
+      // Reload page to reflect fresh Firestore data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (e: any) {
+      console.error(e);
+      toast.error('Gagal melakukan reset database: ' + (e?.message || 'Error'));
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-luxury-gray">
-      {/* Side Navigation */}
-      <aside className="w-64 bg-dark text-white flex flex-col p-6 shadow-2xl">
-        <div className="brand font-heading italic text-xl text-gold mb-10 pb-6 border-b border-white/10 uppercase tracking-widest">
-            Ayam Kremes<br /><span className="text-white not-italic">Jakarta Admin</span>
+    <div className="min-h-screen bg-[#F4EDE0] text-[#231F20] flex flex-col font-sans">
+      
+      {/* Top Navbar Header */}
+      <header className="bg-[#231F20] text-white border-b-4 border-[#FF5E14] sticky top-0 z-40 px-4 sm:px-8 py-3.5 shadow-md">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#FF5E14] text-white flex items-center justify-center font-black">
+              <Utensils className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="font-display font-black text-lg tracking-tight uppercase text-white flex items-center gap-2">
+                Ayam Kremes <span className="text-[#FF5E14]">Jakarta</span>
+                <span className="bg-[#FEBD11] text-[#231F20] text-[10px] px-2 py-0.5 rounded-full font-black uppercase">
+                  Admin Panel
+                </span>
+              </h1>
+              <p className="text-[11px] text-white/60 font-mono -mt-0.5">
+                Pengelola: {userProfile?.displayName || user?.email || ADMIN_EMAIL}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link to="/">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="rounded-full bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-display font-bold h-9"
+              >
+                <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                Lihat Beranda Toko
+              </Button>
+            </Link>
+
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => { logout(); navigate('/'); }}
+              className="rounded-full bg-red-600/80 hover:bg-red-600 text-white text-xs font-display font-bold h-9"
+            >
+              <LogOut className="w-3.5 h-3.5 mr-1" />
+              Keluar
+            </Button>
+          </div>
         </div>
-        <nav className="flex-grow">
-          <ul className="space-y-2">
-            <li className="bg-gold text-dark font-bold px-4 py-3 rounded-md cursor-pointer flex items-center gap-3">
-               <Utensils className="h-4 w-4" /> <span>Dashboard</span>
-            </li>
-            <li className="px-4 py-3 text-white/50 hover:bg-white/5 hover:text-white transition-all cursor-pointer flex items-center gap-3">
-               <MessageSquare className="h-4 w-4" /> <span>Pesan Pelanggan</span>
-            </li>
-          </ul>
-        </nav>
-        <div className="mt-auto pt-6 border-t border-white/10 opacity-30 text-[10px] tracking-widest uppercase">
-          &copy; 2026 AKJ Management
-        </div>
-      </aside>
+      </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-8">
-        <header className="mb-10 flex justify-between items-center bg-white p-6 border border-luxury-border shadow-sm">
-           <div>
-              <h1 className="text-3xl font-heading italic text-dark mb-1">Catering Manager</h1>
-              <p className="text-xs font-bold uppercase tracking-widest text-dark/30">Admin Content & Order System</p>
-           </div>
-           <div className="flex items-center gap-4 border-l pl-4 border-luxury-border">
-              <div className="text-right">
-                 <p className="text-sm font-bold text-dark uppercase tracking-tighter">Aldi Hidayatulloh</p>
-                 <Badge className="bg-gold text-dark text-[9px] px-2 py-0 border-none">Administrator</Badge>
-              </div>
-           </div>
-        </header>
+      <main className="max-w-7xl mx-auto w-full px-4 sm:px-8 py-8 flex-1">
+        
+        {/* Top Action Ribbon */}
+        <div className="bg-white rounded-3xl p-5 sm:p-6 border-2 border-[#231F20]/10 shadow-xs mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-display font-black text-[#231F20] uppercase tracking-tight">
+              Pusat Manajemen Katering
+            </h2>
+            <p className="text-[#574B45] text-xs sm:text-sm mt-0.5">
+              Kelola katalog menu, pantau pesanan katering masuk, perbarui promo diskon, dan balas pesan pelanggan.
+            </p>
+          </div>
 
-        <Tabs defaultValue="menu" className="w-full">
-          <TabsList className="bg-dark/10 p-1 mb-8 rounded-none">
-            <TabsTrigger value="menu" className="data-[state=active]:bg-dark data-[state=active]:text-white rounded-none px-8 font-bold text-xs uppercase tracking-widest">
-              Menu Items
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowResetConfirm(true)}
+              variant="outline"
+              className="rounded-full border-2 border-red-500/30 text-red-600 hover:bg-red-50 font-display font-black text-xs uppercase tracking-wider h-11 px-5 flex items-center gap-2"
+            >
+              <RotateCcw className="w-4 h-4 text-red-500" />
+              Reset Database Menu
+            </Button>
+          </div>
+        </div>
+
+        {/* Database Reset Confirmation Card */}
+        {showResetConfirm && (
+          <div className="bg-red-50 border-2 border-red-300 rounded-3xl p-6 mb-8 text-[#231F20] space-y-4 animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-display font-black text-red-700 text-base uppercase">
+                  Konfirmasi Hapus & Reset Ulang Database Menu?
+                </h4>
+                <p className="text-xs text-red-900/80 mt-1 leading-relaxed">
+                  Tindakan ini akan membersihkan data menu & promo lama di Firestore, lalu mengisinya kembali (seeding) secara otomatis dengan daftar paket menu standar Ayam Kremes Jakarta yang bersih, lengkap, dan beresolusi tinggi.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowResetConfirm(false)}
+                className="rounded-full text-xs font-bold"
+              >
+                Batal
+              </Button>
+              <Button
+                size="sm"
+                disabled={isResetting}
+                onClick={handleResetDatabase}
+                className="bg-red-600 hover:bg-red-700 text-white rounded-full font-display font-bold text-xs uppercase px-6"
+              >
+                {isResetting ? 'Sedang Memproses...' : 'Ya, Bersihkan & Inisialisasi Ulang'}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Dashboard Tabs */}
+        <Tabs defaultValue="orders" className="w-full">
+          <TabsList className="bg-[#E8DFC8] p-1.5 rounded-2xl mb-8 border border-[#231F20]/10 grid grid-cols-2 md:grid-cols-4 gap-2">
+            <TabsTrigger 
+              value="orders" 
+              className="data-[state=active]:bg-[#231F20] data-[state=active]:text-white rounded-xl py-3 font-display font-black text-xs uppercase tracking-wider transition-all"
+            >
+              <Package className="w-4 h-4 mr-2 text-[#FEBD11]" />
+              Pesanan Masuk
             </TabsTrigger>
-            <TabsTrigger value="promo" className="data-[state=active]:bg-dark data-[state=active]:text-white rounded-none px-8 font-bold text-xs uppercase tracking-widest">
-              Promotions
+            
+            <TabsTrigger 
+              value="menu" 
+              className="data-[state=active]:bg-[#231F20] data-[state=active]:text-white rounded-xl py-3 font-display font-black text-xs uppercase tracking-wider transition-all"
+            >
+              <Utensils className="w-4 h-4 mr-2 text-[#FF5E14]" />
+              Katalog Menu
             </TabsTrigger>
-            <TabsTrigger value="orders" className="data-[state=active]:bg-dark data-[state=active]:text-white rounded-none px-8 font-bold text-xs uppercase tracking-widest">
-              Incoming Orders
+
+            <TabsTrigger 
+              value="promo" 
+              className="data-[state=active]:bg-[#231F20] data-[state=active]:text-white rounded-xl py-3 font-display font-black text-xs uppercase tracking-wider transition-all"
+            >
+              <Tag className="w-4 h-4 mr-2 text-[#7BA03C]" />
+              Promo & Diskon
             </TabsTrigger>
-            <TabsTrigger value="chat" className="data-[state=active]:bg-dark data-[state=active]:text-white rounded-none px-8 font-bold text-xs uppercase tracking-widest">
-              Messages
+
+            <TabsTrigger 
+              value="chat" 
+              className="data-[state=active]:bg-[#231F20] data-[state=active]:text-white rounded-xl py-3 font-display font-black text-xs uppercase tracking-wider transition-all"
+            >
+              <MessageSquare className="w-4 h-4 mr-2 text-[#FEBD11]" />
+              Pesan Pelanggan
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="menu" className="animate-in fade-in slide-in-from-bottom-2 focus-visible:outline-none">
-            <MenuManager />
-          </TabsContent>
-          <TabsContent value="promo" className="animate-in fade-in slide-in-from-bottom-2 focus-visible:outline-none">
-            <PromoManager />
-          </TabsContent>
-          <TabsContent value="orders" className="animate-in fade-in slide-in-from-bottom-2 focus-visible:outline-none">
+          <TabsContent value="orders" className="animate-in fade-in duration-200">
             <OrderManager />
           </TabsContent>
-          <TabsContent value="chat" className="animate-in fade-in slide-in-from-bottom-2 focus-visible:outline-none">
+
+          <TabsContent value="menu" className="animate-in fade-in duration-200">
+            <MenuManager />
+          </TabsContent>
+
+          <TabsContent value="promo" className="animate-in fade-in duration-200">
+            <PromoManager />
+          </TabsContent>
+
+          <TabsContent value="chat" className="animate-in fade-in duration-200">
             <ChatManager />
           </TabsContent>
         </Tabs>
+
       </main>
     </div>
   );
 }
 
+// ----------------------------------------------------
+// 1. ORDER MANAGER
+// ----------------------------------------------------
+function OrderManager() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const loadOrders = async () => {
+    setLoading(true);
+    try {
+      const data = await orderService.getAll();
+      setOrders(data);
+    } catch (e) {
+      console.warn(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  const handleUpdateStatus = async (orderId: string, newStatus: OrderStatus) => {
+    try {
+      await orderService.updateStatus(orderId, newStatus);
+      toast.success(`Status pesanan diubah ke: ${newStatus}`);
+      loadOrders();
+    } catch (e) {
+      toast.error('Gagal memperbarui status pesanan.');
+    }
+  };
+
+  const filteredOrders = orders.filter(o => {
+    const matchStatus = filterStatus === 'all' || o.status === filterStatus;
+    const matchSearch = searchQuery === '' || 
+      o.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.customerEmail?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.selectedPackage?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchStatus && matchSearch;
+  });
+
+  return (
+    <div className="space-y-6">
+      
+      {/* Metric Counters */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white p-5 rounded-2xl border-2 border-[#231F20]/10 shadow-xs">
+          <div className="flex items-center gap-2 text-[#8A786E] text-xs font-bold uppercase mb-1">
+            <Clock className="w-4 h-4 text-[#FEBD11]" />
+            <span>Menunggu (Pending)</span>
+          </div>
+          <p className="text-3xl font-display font-black text-[#231F20]">
+            {orders.filter(o => o.status === 'Pending').length}
+          </p>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border-2 border-[#231F20]/10 shadow-xs">
+          <div className="flex items-center gap-2 text-[#8A786E] text-xs font-bold uppercase mb-1">
+            <Flame className="w-4 h-4 text-[#3B82F6]" />
+            <span>Sedang Diproses</span>
+          </div>
+          <p className="text-3xl font-display font-black text-[#3B82F6]">
+            {orders.filter(o => o.status === 'Diproses').length}
+          </p>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border-2 border-[#231F20]/10 shadow-xs">
+          <div className="flex items-center gap-2 text-[#8A786E] text-xs font-bold uppercase mb-1">
+            <Package className="w-4 h-4 text-[#8B5CF6]" />
+            <span>Sedang Dikirim</span>
+          </div>
+          <p className="text-3xl font-display font-black text-[#8B5CF6]">
+            {orders.filter(o => o.status === 'Dikirim').length}
+          </p>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border-2 border-[#231F20]/10 shadow-xs">
+          <div className="flex items-center gap-2 text-[#8A786E] text-xs font-bold uppercase mb-1">
+            <CheckCircle2 className="w-4 h-4 text-[#7BA03C]" />
+            <span>Selesai</span>
+          </div>
+          <p className="text-3xl font-display font-black text-[#7BA03C]">
+            {orders.filter(o => o.status === 'Selesai').length}
+          </p>
+        </div>
+      </div>
+
+      {/* Filter Ribbon */}
+      <div className="bg-white p-4 rounded-2xl border-2 border-[#231F20]/10 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:w-72">
+          <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#8A786E]" />
+          <Input
+            placeholder="Cari nama pemesan / paket..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-10 rounded-xl bg-[#FAF4E8] border-[#231F20]/15 text-xs"
+          />
+        </div>
+
+        <div className="flex items-center gap-1 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+          {['all', 'Pending', 'Diproses', 'Dikirim', 'Selesai', 'Dibatalkan'].map((st) => (
+            <Button
+              key={st}
+              variant="ghost"
+              size="sm"
+              onClick={() => setFilterStatus(st)}
+              className={`rounded-full text-xs font-display font-bold px-3.5 h-8 ${
+                filterStatus === st 
+                  ? 'bg-[#231F20] text-white' 
+                  : 'text-[#574B45] hover:bg-[#FAF4E8]'
+              }`}
+            >
+              {st === 'all' ? 'Semua' : st}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Orders List / Table */}
+      <div className="bg-white rounded-3xl border-2 border-[#231F20]/10 shadow-xs overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center text-xs text-[#8A786E]">
+            <div className="w-6 h-6 border-2 border-[#FF5E14] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            Memuat daftar pesanan...
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          <div className="p-12 text-center text-[#8A786E] space-y-2">
+            <Package className="w-10 h-10 mx-auto text-[#8A786E]/40" />
+            <p className="font-display font-bold uppercase text-sm text-[#231F20]">Tidak ada pesanan yang sesuai.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-[#231F20]/10">
+            {filteredOrders.map((ord) => (
+              <div key={ord.id} className="p-6 hover:bg-[#FAF4E8]/50 transition-colors space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-display font-black text-base text-[#231F20] uppercase">
+                        {ord.customerName}
+                      </span>
+                      <span className="text-xs text-[#8A786E]">({ord.customerEmail || 'Member App'})</span>
+                    </div>
+                    <p className="text-xs text-[#FF5E14] font-display font-bold mt-0.5">
+                      📦 {ord.selectedPackage || 'Paket Katering Syukuran'} • {ord.paxCount || 30} Pax
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="font-display font-black text-lg text-[#231F20]">
+                      Rp {(ord.totalAmount || 0).toLocaleString('id-ID')}
+                    </span>
+                    <Badge className={`rounded-full px-3 py-1 font-bold text-xs border-none ${
+                      ord.status === 'Pending' ? 'bg-[#FEBD11] text-[#231F20]' :
+                      ord.status === 'Diproses' ? 'bg-[#3B82F6] text-white' :
+                      ord.status === 'Dikirim' ? 'bg-[#8B5CF6] text-white' :
+                      ord.status === 'Selesai' ? 'bg-[#7BA03C] text-white' : 'bg-red-500 text-white'
+                    }`}>
+                      {ord.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-[#574B45] bg-[#FAF4E8] p-3 rounded-2xl border border-[#231F20]/5">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-[#FF5E14]" />
+                    <span>Acara: {ord.eventDate || 'Menyusul'} ({ord.eventTime || '11:30'} WIB)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 sm:col-span-2">
+                    <MapPin className="w-3.5 h-3.5 text-[#FF5E14] flex-shrink-0" />
+                    <span className="truncate">{ord.deliveryAddress || 'Area Jakarta'}</span>
+                  </div>
+                  {ord.notes && (
+                    <div className="sm:col-span-3 text-[11px] text-[#8A786E] italic mt-1">
+                      Catatan: "{ord.notes}"
+                    </div>
+                  )}
+                </div>
+
+                {/* Status Update Actions */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-[#8A786E]">Ubah Status:</span>
+                    <select
+                      value={ord.status}
+                      onChange={(e) => handleUpdateStatus(ord.id, e.target.value as OrderStatus)}
+                      className="h-8 px-2.5 rounded-lg bg-white border border-[#231F20]/20 text-xs font-bold"
+                    >
+                      <option value="Pending">Pending (Antrean)</option>
+                      <option value="Diproses">Diproses (Dapur)</option>
+                      <option value="Dikirim">Dikirim (Kurir)</option>
+                      <option value="Selesai">Selesai</option>
+                      <option value="Dibatalkan">Dibatalkan</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {ord.customerPhone && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const msg = `Halo Kak ${ord.customerName}, kami dari Admin ${CONTACT_INFO.brandName} terkait pesanan katering Kakak (#${ord.id?.substring(0, 6)})...`;
+                          window.open(`https://wa.me/${ord.customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#7BA03C] hover:bg-[#688A31] text-white font-display font-bold text-xs shadow-xs"
+                      >
+                        <Phone className="w-3 h-3 fill-current" />
+                        Chat Pelanggan di WA
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+    </div>
+  );
+}
+
+// ----------------------------------------------------
+// 2. MENU MANAGER
+// ----------------------------------------------------
 function MenuManager() {
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -98,6 +478,10 @@ function MenuManager() {
     category: 'Paket Ayam Kremes',
     imageUrl: '',
     isMain: false,
+    spiceLevel: 2,
+    badge: '',
+    portion: '1 Porsi Lengkap',
+    minOrder: 1,
     variations: []
   });
 
@@ -111,27 +495,32 @@ function MenuManager() {
   }, []);
 
   const handleSave = async () => {
+    if (!formData.name.trim()) {
+      toast.error("Nama menu wajib diisi");
+      return;
+    }
+    if (!formData.price || formData.price <= 0) {
+      toast.error("Harga menu wajib diisi dengan benar");
+      return;
+    }
+
     try {
-      if (!formData.imageUrl) {
-        toast.error("Wajib mengunggah foto menu");
-        return;
-      }
       if (editingId) {
         await menuService.update(editingId, formData);
-        toast.success("Menu updated successfully");
+        toast.success("Menu berhasil diperbarui!");
       } else {
         await menuService.add(formData);
-        toast.success("New menu created");
+        toast.success("Menu baru berhasil ditambahkan!");
       }
       setFormData({
         name: '', description: '', price: 0, category: 'Paket Ayam Kremes',
-        imageUrl: '', isMain: false, variations: []
+        imageUrl: '', isMain: false, spiceLevel: 2, badge: '', portion: '1 Porsi', minOrder: 1, variations: []
       });
       setIsAdding(false);
       setEditingId(null);
       loadMenus();
     } catch (e) {
-      toast.error("Failed to save changes");
+      toast.error("Gagal menyimpan data menu.");
     }
   };
 
@@ -141,8 +530,12 @@ function MenuManager() {
       description: menu.description,
       price: menu.price,
       category: menu.category,
-      imageUrl: menu.imageUrl,
-      isMain: menu.isMain,
+      imageUrl: menu.imageUrl || '',
+      isMain: menu.isMain || false,
+      spiceLevel: menu.spiceLevel || 2,
+      badge: menu.badge || '',
+      portion: menu.portion || '1 Porsi',
+      minOrder: menu.minOrder || 1,
       variations: menu.variations || []
     });
     setEditingId(menu.id);
@@ -150,36 +543,18 @@ function MenuManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Delete this menu forever?")) {
+    if (confirm("Hapus menu ini dari katalog?")) {
       await menuService.delete(id);
-      toast.success("Menu removed");
+      toast.success("Menu telah dihapus");
       loadMenus();
     }
-  };
-
-  const addVariation = () => {
-    setFormData({
-      ...formData,
-      variations: [...formData.variations, { name: '', price: 0 }]
-    });
-  };
-
-  const updateVariation = (index: number, field: keyof Variation, value: string | number) => {
-    const newVars = [...formData.variations];
-    newVars[index] = { ...newVars[index], [field]: value };
-    setFormData({ ...formData, variations: newVars });
-  };
-
-  const removeVariation = (index: number) => {
-    const newVars = formData.variations.filter((_, i) => i !== index);
-    setFormData({ ...formData, variations: newVars });
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 800000) {
-        toast.error("File terlalu besar (Maks 800KB)");
+      if (file.size > 1200000) {
+        toast.error("Ukuran file terlalu besar (maksimal 1.2MB)");
         return;
       }
       const base64 = await fileToBase64(file);
@@ -188,271 +563,451 @@ function MenuManager() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-1">
-        {isAdding ? (
-          <Card className="border border-gold shadow-xl rounded-none sticky top-8">
-            <CardHeader className="bg-dark text-white p-6">
-              <CardTitle className="text-xl font-heading italic text-gold">{editingId ? 'Edit Perubahan' : 'Menu Baru'}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 p-6">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest">Unggah Foto Menu</Label>
-                <div 
-                  className="h-40 w-full border-2 border-dashed border-luxury-border flex items-center justify-center relative cursor-pointer overflow-hidden group hover:border-gold transition-colors bg-luxury-gray"
-                  onClick={() => document.getElementById('menu-image')?.click()}
-                >
-                  {formData.imageUrl ? (
-                    <>
-                      <img src={formData.imageUrl} alt="Menu Preview" className="h-full w-full object-cover" />
-                      <div className="absolute inset-0 bg-dark/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                         <Upload className="text-white h-6 w-6" />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center">
-                      <Plus className="mx-auto h-8 w-8 text-dark/20" />
-                      <span className="text-[10px] font-bold text-dark/40 uppercase">Pilih File</span>
-                    </div>
-                  )}
-                </div>
-                <input type="file" id="menu-image" className="hidden" accept="image/*" onChange={handleFileChange} />
-              </div>
-
-              <div className="space-y-2 pt-2">
-                <Label className="text-[10px] font-bold uppercase tracking-widest">Detail Menu</Label>
-                <Input className="rounded-none border-luxury-border" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Nama Menu" />
-                <select 
-                  className="w-full rounded-none border border-luxury-border bg-background px-3 py-2 text-sm shadow-sm"
-                  value={formData.category}
-                  onChange={e => setFormData({ ...formData, category: e.target.value as Category })}
-                >
-                  <option>Paket Ayam Kremes</option>
-                  <option>Ayam Bakar Kremes</option>
-                  <option>Nasi Kuning</option>
-                  <option>Nasi Tumpeng</option>
-                  <option>Lainnya</option>
-                </select>
-                <Input type="number" className="rounded-none border-luxury-border" value={formData.price} onChange={e => setFormData({ ...formData, price: Number(e.target.value) })} placeholder="Harga Dasar (Rp)" />
-                <Textarea className="rounded-none border-luxury-border h-24" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Deskripsi..." />
-              </div>
-              
-              <div className="flex items-center space-x-2 pt-2 border-t border-luxury-border py-4">
-                <Switch checked={formData.isMain} onCheckedChange={checked => setFormData({ ...formData, isMain: checked })} />
-                <Label className="text-xs font-bold uppercase tracking-wide cursor-pointer">Menu Unggulan</Label>
-              </div>
-
-              <div className="space-y-4 pt-4 border-t border-luxury-border">
-                <div className="flex justify-between items-center">
-                  <Label className="text-[10px] font-bold uppercase tracking-widest text-gold text-[10px]">Variasi Porsi / Isi</Label>
-                  <Button type="button" variant="ghost" size="sm" onClick={addVariation} className="text-[10px] uppercase font-bold text-dark hover:text-gold">
-                    Add Variation +
-                  </Button>
-                </div>
-                {formData.variations.map((v, i) => (
-                  <div key={i} className="flex gap-2 items-center bg-luxury-gray p-2 border border-luxury-border">
-                    <Input className="bg-white rounded-none h-8 text-xs" placeholder="Nama" value={v.name} onChange={e => updateVariation(i, 'name', e.target.value)} />
-                    <Input type="number" className="bg-white rounded-none h-8 text-xs w-24" placeholder="Harga" value={v.price} onChange={e => updateVariation(i, 'price', Number(e.target.value))} />
-                    <Button variant="ghost" size="icon" onClick={() => removeVariation(i)}>
-                      <X className="h-3 w-3 text-destructive" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-col gap-2 pt-6">
-                <Button onClick={handleSave} className="bg-gold text-dark hover:bg-gold/80 rounded-none h-12 font-bold uppercase text-xs tracking-widest">
-                  Simpan Konten
-                </Button>
-                <Button variant="ghost" onClick={() => { setIsAdding(false); setEditingId(null); }} className="text-xs font-bold uppercase underline underline-offset-4">
-                  Batalkan
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6 sticky top-8">
-            <Card className="bg-dark text-white rounded-none border-none overflow-hidden">
-               <CardHeader>
-                  <CardTitle className="text-lg text-gold font-heading italic">Overview</CardTitle>
-               </CardHeader>
-               <CardContent className="space-y-4 pt-0">
-                  <div className="flex justify-between items-center pb-2 border-b border-white/5">
-                     <span className="text-xs font-light tracking-widest opacity-60">JUMLAH MENU</span>
-                     <span className="text-xl font-bold">{menus.length}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                     <span className="text-xs font-light tracking-widest opacity-60">UNGGULAN</span>
-                     <span className="text-xl font-bold">{menus.filter(m => m.isMain).length}</span>
-                  </div>
-               </CardContent>
-            </Card>
-            <Button onClick={() => setIsAdding(true)} className="w-full h-16 bg-gold text-dark hover:bg-gold/90 rounded-none font-bold uppercase tracking-widest text-sm shadow-xl transition-all">
-               Tambah Menu Baru +
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <div className="lg:col-span-2">
-        <div className="bg-white border border-luxury-border shadow-sm overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-dark text-white uppercase text-[10px] tracking-widest font-bold">
-              <tr>
-                <th className="px-6 py-4">Menu Selection</th>
-                <th className="px-6 py-4">Category</th>
-                <th className="px-6 py-4">Price</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-luxury-border">
-              {menus.map(menu => (
-                <tr key={menu.id} className="hover:bg-luxury-gray transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 bg-luxury-gray border border-luxury-border flex-shrink-0 overflow-hidden flex items-center justify-center">
-                         {menu.imageUrl ? (
-                           <img src={menu.imageUrl} alt={menu.name} className="h-full w-full object-cover" />
-                         ) : (
-                           <Utensils className="h-5 w-5 text-dark/30" />
-                         )}
-                      </div>
-                      <div>
-                        <div className="font-bold text-dark">{menu.name}</div>
-                        {menu.isMain && <span className="text-[9px] font-black bg-accent text-white px-2 py-0.5 uppercase tracking-tighter">FEATURED</span>}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-[10px] font-bold uppercase text-dark/40 px-3 py-1 bg-luxury-border">{menu.category}</span>
-                  </td>
-                  <td className="px-6 py-4 font-mono font-bold text-gold">
-                    Rp{menu.price.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(menu)} className="text-xs font-bold text-gold hover:text-dark">EDIT</Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(menu.id)} className="text-xs font-bold text-destructive">DELETE</Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {menus.length === 0 && (
-             <div className="p-20 text-center text-dark/20 uppercase tracking-[0.3em] font-bold">Belum ada konten menu</div>
-          )}
+    <div className="space-y-6">
+      
+      {/* Top Header Card */}
+      <div className="bg-white rounded-3xl p-6 border-2 border-[#231F20]/10 shadow-xs flex items-center justify-between">
+        <div>
+          <h3 className="text-xl font-display font-black text-[#231F20] uppercase">
+            Daftar Katalog Menu ({menus.length})
+          </h3>
+          <p className="text-[#574B45] text-xs mt-0.5">
+            Kelola menu ayam kremes, nasi bento katering, dan lauk pelengkap.
+          </p>
         </div>
+
+        <Button
+          onClick={() => {
+            setFormData({
+              name: '', description: '', price: 25000, category: 'Paket Ayam Kremes',
+              imageUrl: '', isMain: false, spiceLevel: 2, badge: 'Favorit', portion: '1 Kotak Bento', minOrder: 1, variations: []
+            });
+            setEditingId(null);
+            setIsAdding(true);
+          }}
+          className="bg-[#FF5E14] hover:bg-[#E04F00] text-white rounded-full font-display font-black text-xs uppercase tracking-wider px-6 h-11 shadow-sm"
+        >
+          <Plus className="w-4 h-4 mr-1.5" />
+          Tambah Menu Baru
+        </Button>
       </div>
+
+      {/* Add / Edit Form Modal */}
+      {isAdding && (
+        <Card className="rounded-3xl border-2 border-[#231F20]/20 shadow-xl bg-white overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+          <CardHeader className="bg-[#231F20] text-white p-6">
+            <CardTitle className="font-display font-black text-xl uppercase text-white">
+              {editingId ? 'Edit Menu Katering' : 'Tambah Menu Baru'}
+            </CardTitle>
+            <CardDescription className="text-white/70 text-xs">
+              Lengkapi informasi menu agar tampil menarik di katalog pelanggan.
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="p-6 space-y-5">
+            {/* Image Upload Area */}
+            <div>
+              <Label className="text-xs font-bold text-[#231F20]">Foto Menu (Opsional / Resolusi Rekomendasi 800x600)</Label>
+              <div 
+                className="h-44 w-full mt-1.5 border-2 border-dashed border-[#231F20]/20 rounded-2xl flex items-center justify-center relative cursor-pointer overflow-hidden group hover:border-[#FF5E14] transition-colors bg-[#FAF4E8]"
+                onClick={() => document.getElementById('menu-image-upload')?.click()}
+              >
+                {formData.imageUrl ? (
+                  <>
+                    <img src={formData.imageUrl} alt="Menu Preview" className="h-full w-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Upload className="text-white h-6 w-6" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center p-4">
+                    <Plus className="mx-auto h-8 w-8 text-[#8A786E]" />
+                    <span className="text-xs font-bold text-[#8A786E] uppercase mt-1 block">Klik untuk Unggah Foto</span>
+                  </div>
+                )}
+              </div>
+              <input type="file" id="menu-image-upload" className="hidden" accept="image/*" onChange={handleFileChange} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs font-bold text-[#231F20]">Nama Menu</Label>
+                <Input 
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Contoh: Paket Ayam Kremes Komplit"
+                  className="h-10 mt-1 rounded-xl bg-[#FAF4E8] border-[#231F20]/20 text-xs"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold text-[#231F20]">Kategori</Label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value as Category })}
+                  className="w-full h-10 px-3 mt-1 rounded-xl bg-[#FAF4E8] border border-[#231F20]/20 text-xs font-medium"
+                >
+                  <option value="Paket Ayam Kremes">Paket Ayam Kremes</option>
+                  <option value="Ayam Bakar Kremes">Ayam Bakar Kremes</option>
+                  <option value="Nasi Kuning">Nasi Kuning</option>
+                  <option value="Nasi Tumpeng">Nasi Tumpeng</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold text-[#231F20]">Harga Dasar (Rp)</Label>
+                <Input 
+                  type="number"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+                  className="h-10 mt-1 rounded-xl bg-[#FAF4E8] border-[#231F20]/20 text-xs"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold text-[#231F20]">Label Badge (Opsional)</Label>
+                <Input 
+                  value={formData.badge || ''}
+                  onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
+                  placeholder="Contoh: Terlaris, Best Seller"
+                  className="h-10 mt-1 rounded-xl bg-[#FAF4E8] border-[#231F20]/20 text-xs"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold text-[#231F20]">Deskripsi Menu & Komposisi</Label>
+              <Textarea 
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Nasi pulen, ayam goreng kremes gurih, tahu tempe, sambal bawang pedas, lalapan segar..."
+                className="mt-1 rounded-xl bg-[#FAF4E8] border-[#231F20]/20 text-xs h-20"
+              />
+            </div>
+
+            <div className="flex items-center space-x-3 bg-[#FAF4E8] p-3 rounded-xl border border-[#231F20]/10">
+              <Switch 
+                checked={formData.isMain} 
+                onCheckedChange={(checked) => setFormData({ ...formData, isMain: checked })} 
+              />
+              <Label className="text-xs font-bold text-[#231F20] cursor-pointer">
+                Jadikan Menu Unggulan (Tampil di Hero Utama)
+              </Label>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-[#231F20]/10">
+              <Button 
+                variant="ghost" 
+                onClick={() => { setIsAdding(false); setEditingId(null); }}
+                className="rounded-full text-xs font-bold"
+              >
+                Batal
+              </Button>
+              <Button 
+                onClick={handleSave}
+                className="bg-[#7BA03C] hover:bg-[#688A31] text-white rounded-full font-display font-bold text-xs uppercase px-6"
+              >
+                <Save className="w-4 h-4 mr-1.5" />
+                Simpan Menu
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Grid of Menus */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {menus.map((menu) => (
+          <div 
+            key={menu.id} 
+            className="bg-white rounded-3xl p-5 border-2 border-[#231F20]/10 shadow-xs hover:border-[#FF5E14]/40 transition-all flex flex-col justify-between space-y-4"
+          >
+            <div className="space-y-3">
+              <div className="h-44 w-full rounded-2xl overflow-hidden bg-[#FAF4E8] flex items-center justify-center relative">
+                {menu.imageUrl ? (
+                  <img src={menu.imageUrl} alt={menu.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-4xl">🍗</span>
+                )}
+                {menu.badge && (
+                  <span className="absolute top-2.5 left-2.5 bg-[#FF5E14] text-white text-[10px] font-display font-black px-2.5 py-1 rounded-full uppercase">
+                    {menu.badge}
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <span className="text-[10px] font-display font-bold text-[#8A786E] uppercase">
+                  {menu.category}
+                </span>
+                <h4 className="font-display font-black text-[#231F20] text-base leading-snug">
+                  {menu.name}
+                </h4>
+                <p className="text-xs text-[#574B45] line-clamp-2 mt-1">
+                  {menu.description}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-[#231F20]/10 flex items-center justify-between">
+              <span className="font-display font-black text-[#FF5E14] text-base">
+                Rp {menu.price.toLocaleString('id-ID')}
+              </span>
+
+              <div className="flex items-center gap-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleEdit(menu)}
+                  className="rounded-full text-xs font-bold text-[#231F20] hover:bg-[#FAF4E8]"
+                >
+                  <Edit3 className="w-3.5 h-3.5 mr-1" />
+                  Edit
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleDelete(menu.id)}
+                  className="rounded-full text-xs font-bold text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
     </div>
   );
 }
 
-function OrderManager() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+// ----------------------------------------------------
+// 3. PROMO MANAGER
+// ----------------------------------------------------
+function PromoManager() {
+  const [promos, setPromos] = useState<Promo[]>([]);
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Omit<Promo, 'id' | 'createdAt'>>({
+    title: '',
+    description: '',
+    imageUrl: '',
+    discountPercent: 15,
+    active: true
+  });
 
-  const loadOrders = async () => {
-    try {
-      const data = await orderService.getAll();
-      setOrders(data);
-    } catch (e) {
-      toast.error("Gagal mengambil data pesanan");
-    } finally {
-      setLoading(false);
-    }
+  const loadPromos = async () => {
+    const data = await promoService.getAll();
+    setPromos(data);
   };
 
   useEffect(() => {
-    loadOrders();
+    loadPromos();
   }, []);
 
-  const updateStatus = async (id: string, status: Order['status']) => {
+  const handleSave = async () => {
+    if (!formData.title.trim()) {
+      toast.error("Judul promo wajib diisi");
+      return;
+    }
+
     try {
-      await orderService.updateStatus(id, status);
-      toast.success("Status pesanan diperbarui");
-      loadOrders();
+      if (editingId) {
+        await promoService.update(editingId, formData);
+        toast.success("Promo berhasil diperbarui!");
+      } else {
+        await promoService.add(formData);
+        toast.success("Promo baru berhasil diluncurkan!");
+      }
+      setFormData({ title: '', description: '', imageUrl: '', discountPercent: 15, active: true });
+      setIsAdding(false);
+      setEditingId(null);
+      loadPromos();
     } catch (e) {
-      toast.error("Gagal update");
+      toast.error("Gagal menyimpan promo.");
+    }
+  };
+
+  const handleEdit = (p: Promo) => {
+    setFormData({
+      title: p.title,
+      description: p.description,
+      imageUrl: p.imageUrl || '',
+      discountPercent: p.discountPercent || 0,
+      active: p.active
+    });
+    setEditingId(p.id);
+    setIsAdding(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Hapus promo ini?")) {
+      await promoService.delete(id);
+      toast.success("Promo telah dihapus");
+      loadPromos();
     }
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex gap-4">
-        <div className="bg-white p-6 border border-luxury-border flex-1">
-           <div className="flex items-center gap-3 text-gold mb-2">
-              <Clock className="h-5 w-5" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Antrean</span>
-           </div>
-           <p className="text-3xl font-black text-dark">{orders.filter(o => o.status === 'Pending').length}</p>
+    <div className="space-y-6">
+      
+      {/* Top Header Card */}
+      <div className="bg-white rounded-3xl p-6 border-2 border-[#231F20]/10 shadow-xs flex items-center justify-between">
+        <div>
+          <h3 className="text-xl font-display font-black text-[#231F20] uppercase">
+            Kelola Promo & Diskon Katering ({promos.length})
+          </h3>
+          <p className="text-[#574B45] text-xs mt-0.5">
+            Atur diskon spesial pemesanan porsi banyak dan voucher pelanggan.
+          </p>
         </div>
-        <div className="bg-white p-6 border border-luxury-border flex-1">
-           <div className="flex items-center gap-3 text-accent mb-2">
-              <CircleDashed className="h-5 w-5" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">Diproses</span>
-           </div>
-           <p className="text-3xl font-black text-dark">{orders.filter(o => o.status === 'Processing').length}</p>
-        </div>
+
+        <Button
+          onClick={() => {
+            setFormData({
+              title: '', description: '', imageUrl: '', discountPercent: 20, active: true
+            });
+            setEditingId(null);
+            setIsAdding(true);
+          }}
+          className="bg-[#7BA03C] hover:bg-[#688A31] text-white rounded-full font-display font-black text-xs uppercase tracking-wider px-6 h-11 shadow-sm"
+        >
+          <Plus className="w-4 h-4 mr-1.5" />
+          Buat Promo Baru
+        </Button>
       </div>
 
-      <div className="bg-white border border-luxury-border overflow-hidden shadow-sm">
-        <table className="w-full text-left">
-          <thead className="bg-dark text-white text-[10px] font-bold uppercase tracking-widest">
-            <tr>
-              <th className="px-6 py-4">Pelanggan</th>
-              <th className="px-6 py-4">Pesanan</th>
-              <th className="px-6 py-4">Total</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-luxury-border">
-            {orders.map(order => (
-              <tr key={order.id} className="hover:bg-luxury-gray transition-colors">
-                <td className="px-6 py-4">
-                  <div className="font-bold text-dark">{order.customerName}</div>
-                  <div className="text-[10px] text-dark/40">{order.customerEmail}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-[10px] text-dark/60 italic leading-tight">
-                     {order.items.map(i => `${i.name} (${i.selectedVariation?.name || 'Standard'}) x${i.quantity}`).join(', ')}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                   <div className="font-black text-dark">Rp{order.totalAmount.toLocaleString()}</div>
-                </td>
-                <td className="px-6 py-4">
-                  <Badge className={`rounded-none border-none py-1 px-4 ${
-                    order.status === 'Pending' ? 'bg-gold text-dark' : 
-                    order.status === 'Processing' ? 'bg-accent text-white' : 
-                    order.status === 'Completed' ? 'bg-green-600 text-white' : 'bg-dark/10 text-dark'
-                  }`}>
-                    {order.status}
-                  </Badge>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-1">
-                    {order.status === 'Pending' && (
-                      <Button variant="ghost" size="sm" onClick={() => updateStatus(order.id, 'Processing')} className="text-[10px] font-black uppercase text-gold">PROSES</Button>
-                    )}
-                    {order.status === 'Processing' && (
-                      <Button variant="ghost" size="sm" onClick={() => updateStatus(order.id, 'Completed')} className="text-[10px] font-black uppercase text-green-600">SELESAI</Button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {orders.length === 0 && (
-          <div className="p-12 text-center text-dark/20 uppercase tracking-widest font-bold">Belum ada pesanan masuk</div>
-        )}
+      {isAdding && (
+        <Card className="rounded-3xl border-2 border-[#231F20]/20 shadow-xl bg-white overflow-hidden animate-in fade-in">
+          <CardHeader className="bg-[#231F20] text-white p-6">
+            <CardTitle className="font-display font-black text-xl uppercase text-white">
+              {editingId ? 'Edit Promo' : 'Buat Promo Baru'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs font-bold text-[#231F20]">Judul Promo</Label>
+                <Input 
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Contoh: Diskon Katering Kantor 20%"
+                  className="h-10 mt-1 rounded-xl bg-[#FAF4E8] border-[#231F20]/20 text-xs"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-bold text-[#231F20]">Persentase Diskon (%)</Label>
+                <Input 
+                  type="number"
+                  value={formData.discountPercent}
+                  onChange={(e) => setFormData({ ...formData, discountPercent: Number(e.target.value) })}
+                  className="h-10 mt-1 rounded-xl bg-[#FAF4E8] border-[#231F20]/20 text-xs"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold text-[#231F20]">Deskripsi Syarat & Ketentuan</Label>
+              <Textarea 
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Minimal pemesanan 50 pax, berlaku untuk semua paket bento..."
+                className="mt-1 rounded-xl bg-[#FAF4E8] border-[#231F20]/20 text-xs h-20"
+              />
+            </div>
+
+            <div className="flex items-center space-x-3 bg-[#FAF4E8] p-3 rounded-xl border border-[#231F20]/10">
+              <Switch 
+                checked={formData.active} 
+                onCheckedChange={(checked) => setFormData({ ...formData, active: checked })} 
+              />
+              <Label className="text-xs font-bold text-[#231F20] cursor-pointer">
+                Promo Aktif / Ditampilkan
+              </Label>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-[#231F20]/10">
+              <Button 
+                variant="ghost" 
+                onClick={() => { setIsAdding(false); setEditingId(null); }}
+                className="rounded-full text-xs font-bold"
+              >
+                Batal
+              </Button>
+              <Button 
+                onClick={handleSave}
+                className="bg-[#7BA03C] hover:bg-[#688A31] text-white rounded-full font-display font-bold text-xs uppercase px-6"
+              >
+                <Save className="w-4 h-4 mr-1.5" />
+                Simpan Promo
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Promos Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {promos.map((p) => (
+          <div 
+            key={p.id}
+            className={`rounded-3xl p-6 border-2 transition-all shadow-xs flex flex-col justify-between space-y-4 ${
+              p.active ? 'bg-white border-[#7BA03C]/30' : 'bg-stone-50 border-stone-200 opacity-60'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-3xl font-display font-black text-[#FF5E14]">
+                  -{p.discountPercent}%
+                </span>
+                <Badge className={`rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase border-none ${
+                  p.active ? 'bg-[#7BA03C] text-white' : 'bg-stone-300 text-stone-700'
+                }`}>
+                  {p.active ? 'AKTIF' : 'NONAKTIF'}
+                </Badge>
+              </div>
+
+              <h4 className="font-display font-black text-[#231F20] text-lg">
+                {p.title}
+              </h4>
+              <p className="text-xs text-[#574B45] mt-1 line-clamp-3">
+                {p.description}
+              </p>
+            </div>
+
+            <div className="pt-3 border-t border-[#231F20]/10 flex items-center justify-end gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleEdit(p)}
+                className="rounded-full text-xs font-bold text-[#231F20]"
+              >
+                <Edit3 className="w-3.5 h-3.5 mr-1" />
+                Edit
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleDelete(p.id)}
+                className="rounded-full text-xs font-bold text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+        ))}
       </div>
+
     </div>
   );
 }
 
+// ----------------------------------------------------
+// 4. CHAT MANAGER
+// ----------------------------------------------------
 function ChatManager() {
   const { user } = useAuth();
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -486,69 +1041,80 @@ function ChatManager() {
 
     const text = inputText;
     setInputText('');
-    await chatService.sendMessage(selectedRoomId, user.uid, "Admin AKJ", text);
+    await chatService.sendMessage(selectedRoomId, user.uid, "Admin Ayam Kremes", text);
   };
 
   const activeRoom = rooms.find(r => r.id === selectedRoomId);
 
   return (
-    <div className="flex bg-white border border-luxury-border h-[600px] shadow-sm overflow-hidden">
-      {/* Rooms List */}
-      <div className="w-80 border-r border-luxury-border flex flex-col bg-luxury-gray/10">
-        <div className="p-4 bg-dark text-white text-[10px] font-bold uppercase tracking-widest">Customer Chats</div>
+    <div className="bg-white rounded-3xl border-2 border-[#231F20]/10 shadow-xs overflow-hidden h-[600px] flex flex-col md:flex-row">
+      
+      {/* Customer Rooms Sidebar */}
+      <div className="w-full md:w-80 border-r border-[#231F20]/10 bg-[#FAF4E8] flex flex-col">
+        <div className="p-4 bg-[#231F20] text-white">
+          <h4 className="font-display font-black text-xs uppercase tracking-wider text-white">
+            Obrolan Pelanggan ({rooms.length})
+          </h4>
+        </div>
+
         <ScrollArea className="flex-1">
-          <div className="divide-y divide-luxury-border">
+          <div className="divide-y divide-[#231F20]/10">
             {rooms.map((room) => (
               <button
                 key={room.id}
                 onClick={() => setSelectedRoomId(room.id)}
-                className={`w-full p-4 text-left transition-all hover:bg-gold/5 flex flex-col gap-1 ${
-                  selectedRoomId === room.id ? 'bg-white border-l-4 border-l-gold' : ''
+                className={`w-full p-4 text-left transition-colors flex flex-col gap-1 ${
+                  selectedRoomId === room.id ? 'bg-white border-l-4 border-[#FF5E14]' : 'hover:bg-white/60'
                 }`}
               >
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-dark text-xs uppercase truncate">{room.userName}</span>
-                  <span className="text-[8px] text-dark/30 font-bold uppercase">
-                    {room.lastUpdatedAt?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || 'Active'}
+                  <span className="font-display font-black text-xs text-[#231F20] truncate">
+                    {room.userName || 'Pelanggan'}
                   </span>
                 </div>
                 {room.lastMessage && (
-                  <p className="text-[10px] text-dark/50 truncate italic pr-4">"{room.lastMessage}"</p>
+                  <p className="text-[11px] text-[#8A786E] truncate italic">
+                    "{room.lastMessage}"
+                  </p>
                 )}
               </button>
             ))}
             {rooms.length === 0 && (
-              <div className="p-8 text-center text-dark/20 uppercase text-[10px] font-bold">No active conversations</div>
+              <div className="p-8 text-center text-xs text-[#8A786E]">
+                Belum ada pesan obrolan aktif.
+              </div>
             )}
           </div>
         </ScrollArea>
       </div>
 
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col bg-white overflow-hidden">
+      {/* Chat Messages Panel */}
+      <div className="flex-1 flex flex-col bg-white">
         {selectedRoomId ? (
           <>
-            <div className="p-4 border-b border-luxury-border flex justify-between items-center bg-luxury-gray/20">
+            <div className="p-4 border-b border-[#231F20]/10 bg-[#FAF4E8] flex items-center justify-between">
               <div>
-                <h4 className="font-heading italic text-dark text-lg">{activeRoom?.userName}</h4>
-                <p className="text-[10px] text-dark/40 uppercase font-bold tracking-widest">{activeRoom?.userEmail}</p>
+                <h4 className="font-display font-black text-sm text-[#231F20] uppercase">
+                  {activeRoom?.userName}
+                </h4>
+                <p className="text-[11px] text-[#8A786E]">{activeRoom?.userEmail}</p>
               </div>
             </div>
-            
-            <ScrollArea className="flex-1 p-6">
-              <div className="space-y-6">
+
+            <ScrollArea className="flex-1 p-6 bg-[#FAF4E8]/30">
+              <div className="space-y-4">
                 {messages.map((msg) => (
                   <div key={msg.id} className={`flex ${msg.senderId === user?.uid ? 'justify-end' : 'justify-start'}`}>
-                    <div className="max-w-[70%]">
-                      <div className={`p-4 text-xs md:text-sm shadow-sm ${
+                    <div className="max-w-[75%]">
+                      <div className={`p-3.5 text-xs shadow-xs rounded-2xl ${
                         msg.senderId === user?.uid 
-                          ? 'bg-dark text-white rounded-l-2xl rounded-tr-2xl' 
-                          : 'bg-gold/10 text-dark border border-gold/20 rounded-r-2xl rounded-tl-2xl'
+                          ? 'bg-[#231F20] text-white rounded-tr-xs' 
+                          : 'bg-white text-[#231F20] border border-[#231F20]/10 rounded-tl-xs'
                       }`}>
-                        <p className="font-medium whitespace-pre-wrap">{msg.text}</p>
+                        <p className="font-medium">{msg.text}</p>
                       </div>
-                      <p className={`text-[8px] mt-1 uppercase font-bold tracking-tighter opacity-40 ${msg.senderId === user?.uid ? 'text-right' : 'text-left'}`}>
-                        {msg.timestamp?.toDate().toLocaleTimeString() || 'Sending...'}
+                      <p className={`text-[9px] mt-1 text-[#8A786E] font-medium ${msg.senderId === user?.uid ? 'text-right' : 'text-left'}`}>
+                        {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Baru saja'}
                       </p>
                     </div>
                   </div>
@@ -557,196 +1123,26 @@ function ChatManager() {
               </div>
             </ScrollArea>
 
-            <form onSubmit={handleSend} className="p-6 border-t border-luxury-border flex gap-3 bg-white">
-              <Input 
-                placeholder="Type response..." 
+            <form onSubmit={handleSend} className="p-4 border-t border-[#231F20]/10 flex gap-2 bg-white">
+              <Input
+                placeholder="Ketik balasan untuk pelanggan..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="rounded-none h-12 border-luxury-border hover:border-gold transition-colors focus:ring-0"
+                className="rounded-xl h-11 bg-[#FAF4E8] border-[#231F20]/20 text-xs"
               />
-              <Button type="submit" className="bg-dark text-gold hover:bg-gold hover:text-dark h-12 px-8 rounded-none font-bold uppercase tracking-widest text-xs">
-                <Send className="h-4 w-4 mr-2" /> SEND
+              <Button type="submit" className="bg-[#FF5E14] hover:bg-[#E04F00] text-white rounded-xl h-11 px-6 font-display font-bold text-xs">
+                <Send className="w-4 h-4 mr-1.5" /> Balas
               </Button>
             </form>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center opacity-10">
-            <MessageSquare size={120} />
-            <p className="text-xl font-heading italic mt-4">Select a conversation to start</p>
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-[#8A786E] space-y-3">
+            <MessageSquare className="w-12 h-12 text-[#8A786E]/30" />
+            <p className="font-display font-bold text-sm text-[#231F20]">Pilih obrolan dari daftar untuk mulai membalas pesan.</p>
           </div>
         )}
       </div>
-    </div>
-  );
-}
 
-function PromoManager() {
-  const [promos, setPromos] = useState<Promo[]>([]);
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<Omit<Promo, 'id' | 'createdAt'>>({
-    title: '',
-    description: '',
-    imageUrl: '',
-    discountPercent: 0,
-    active: true
-  });
-
-  const loadPromos = async () => {
-    const data = await promoService.getAll();
-    setPromos(data);
-  };
-
-  useEffect(() => {
-    loadPromos();
-  }, []);
-
-  const handleSave = async () => {
-    try {
-      if (!formData.imageUrl) {
-        toast.error("Wajib mengunggah foto promo");
-        return;
-      }
-      if (editingId) {
-        await promoService.update(editingId, formData);
-        toast.success("Promo update published");
-      } else {
-        await promoService.add(formData);
-        toast.success("New promotion launched");
-      }
-      setFormData({ title: '', description: '', imageUrl: '', discountPercent: 0, active: true });
-      setIsAdding(false);
-      setEditingId(null);
-      loadPromos();
-    } catch (e) {
-      toast.error("Operation failed");
-    }
-  };
-
-  const handleEdit = (p: Promo) => {
-    setFormData({
-      title: p.title,
-      description: p.description,
-      imageUrl: p.imageUrl,
-      discountPercent: p.discountPercent,
-      active: p.active
-    });
-    setEditingId(p.id);
-    setIsAdding(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm("Cancel this promotion?")) {
-      await promoService.delete(id);
-      toast.success("Promo terminated");
-      loadPromos();
-    }
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 800000) {
-        toast.error("File terlalu besar");
-        return;
-      }
-      const base64 = await fileToBase64(file);
-      setFormData({ ...formData, imageUrl: base64 });
-    }
-  };
-
-  return (
-    <div className="space-y-10">
-      <div className="bg-dark p-10 flex border-b-8 border-gold relative overflow-hidden">
-         <div className="absolute right-0 top-0 opacity-10 scale-150 rotate-12 text-gold">
-            <Tag size={200} />
-         </div>
-         <div className="relative z-10">
-            <h3 className="text-4xl font-heading italic text-gold mb-2 uppercase tracking-tighter">Luxury Campaigns</h3>
-            <p className="text-white/40 uppercase tracking-[0.2em] text-xs">Atur penawaran eksklusif dan promo spesial</p>
-         </div>
-         <Button onClick={() => setIsAdding(true)} className="ml-auto mt-auto self-end bg-gold text-dark h-12 px-10 rounded-none font-bold uppercase text-xs tracking-widest border border-gold hover:bg-gold/80 transition-all">
-            Launch New Promo +
-         </Button>
-      </div>
-
-      {isAdding && (
-        <Card className="border-gold shadow-2xl rounded-none container max-w-2xl mx-auto">
-          <CardHeader className="bg-dark text-white p-8">
-            <CardTitle className="text-2xl font-heading italic text-gold">{editingId ? 'Edit Campaign' : 'New Campaign Detail'}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6 pt-8 p-8">
-            <div className="space-y-2">
-              <Label className="uppercase text-[10px] font-bold text-dark/40">Banner Foto Campaign</Label>
-              <div 
-                className="h-40 w-full border-2 border-dashed border-luxury-border flex items-center justify-center relative cursor-pointer overflow-hidden group hover:border-gold transition-colors bg-luxury-gray"
-                onClick={() => document.getElementById('promo-image')?.click()}
-              >
-                {formData.imageUrl ? (
-                  <>
-                    <img src={formData.imageUrl} alt="Campaign Banner" className="h-full w-full object-cover" />
-                    <div className="absolute inset-0 bg-dark/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                       <Upload className="text-white h-6 w-6" />
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center">
-                    <Plus className="mx-auto h-8 w-8 text-dark/20" />
-                    <span className="text-[10px] font-bold text-dark/40 uppercase">Pilih Foto Banner</span>
-                  </div>
-                )}
-              </div>
-              <input type="file" id="promo-image" className="hidden" accept="image/*" onChange={handleFileChange} />
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2 pt-4 border-t border-luxury-border">
-              <div className="space-y-2">
-                <Label className="uppercase text-[10px] font-bold text-dark/40">Campaign Title</Label>
-                <Input className="rounded-none font-bold h-12" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label className="uppercase text-[10px] font-bold text-dark/40">Discount %</Label>
-                <Input className="rounded-none font-bold h-12" type="number" value={formData.discountPercent} onChange={e => setFormData({ ...formData, discountPercent: Number(e.target.value) })} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="uppercase text-[10px] font-bold text-dark/40">Campaign Mechanics</Label>
-              <Textarea className="rounded-none italic h-32" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Jelaskan detail promo..." />
-            </div>
-            <div className="flex items-center space-x-3 bg-luxury-gray p-4 border border-luxury-border">
-              <Switch checked={formData.active} onCheckedChange={active => setFormData({ ...formData, active })} />
-              <Label className="uppercase text-xs font-bold tracking-widest cursor-pointer">Live / Active</Label>
-            </div>
-            <div className="flex justify-end gap-3 pt-6 border-t border-luxury-border">
-              <Button variant="ghost" onClick={() => { setIsAdding(false); setEditingId(null); }} className="text-xs font-bold uppercase transition-all">Discard</Button>
-              <Button onClick={handleSave} className="bg-gold text-dark hover:bg-gold/80 h-12 px-10 rounded-none font-bold uppercase text-xs tracking-widest transition-all">Publish</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-        {promos.map(promo => (
-          <Card key={promo.id} className={`rounded-none border-l-8 overflow-hidden transition-all hover:scale-[1.02] shadow-sm hover:shadow-2xl ${promo.active ? 'border-gold' : 'border-dark/20 opacity-60'}`}>
-            <CardContent className="p-8">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h4 className="font-bold text-xl text-dark mb-1">{promo.title}</h4>
-                  <Badge className={`${promo.active ? 'bg-accent' : 'bg-dark/10 text-dark'} uppercase text-[8px] font-black rounded-none border-none`}>
-                    {promo.active ? "LIVE" : "DRAFT"}
-                  </Badge>
-                </div>
-                <div className="text-4xl font-black text-gold">-{promo.discountPercent}%</div>
-              </div>
-              <p className="text-sm text-dark/60 font-light italic mb-8 border-l border-luxury-border pl-4 h-12 overflow-hidden line-clamp-2">{promo.description}</p>
-              <div className="flex justify-end gap-2 border-t border-luxury-border pt-6">
-                 <Button variant="ghost" size="sm" onClick={() => handleEdit(promo)} className="text-[10px] font-black uppercase text-gold hover:text-dark">Edit</Button>
-                 <Button variant="ghost" size="sm" onClick={() => handleDelete(promo.id)} className="text-[10px] font-black uppercase text-destructive">Delete</Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 }

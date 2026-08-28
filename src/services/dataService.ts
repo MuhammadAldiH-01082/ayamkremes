@@ -4,27 +4,66 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
+  setDoc,
   query,
   where,
   orderBy,
   serverTimestamp,
   onSnapshot,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { MenuItem, Promo, ChatMessage, ChatRoom } from '@/types';
+import { MenuItem, Promo, ChatMessage, ChatRoom, Order, UserProfile, OrderStatus } from '@/types';
+import { DEFAULT_MENUS, DEFAULT_PROMOS } from '@/data/defaultCatalogue';
 
-export const menuService = {
-  async getAll() {
-    const q = query(collection(db, 'menus'), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MenuItem));
+export const userService = {
+  async getProfile(uid: string): Promise<UserProfile | null> {
+    try {
+      const docRef = doc(db, 'users', uid);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        return snap.data() as UserProfile;
+      }
+      return null;
+    } catch (e) {
+      console.warn("Could not fetch user profile:", e);
+      return null;
+    }
   },
 
-  async getMainMenus() {
-    const q = query(collection(db, 'menus'), where('isMain', '==', true));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MenuItem));
+  async saveProfile(uid: string, data: Partial<UserProfile>): Promise<void> {
+    const docRef = doc(db, 'users', uid);
+    await setDoc(docRef, {
+      ...data,
+      uid,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  }
+};
+
+export const menuService = {
+  async getAll(): Promise<MenuItem[]> {
+    try {
+      const q = query(collection(db, 'menus'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return [];
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MenuItem));
+    } catch (error) {
+      console.warn("Firestore menu query error, returning empty:", error);
+      return [];
+    }
+  },
+
+  async getMainMenus(): Promise<MenuItem[]> {
+    try {
+      const q = query(collection(db, 'menus'), where('isMain', '==', true));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as MenuItem));
+    } catch (e) {
+      return [];
+    }
   },
 
   async add(menu: Omit<MenuItem, 'id' | 'createdAt'>) {
@@ -42,20 +81,38 @@ export const menuService = {
   async delete(id: string) {
     const docRef = doc(db, 'menus', id);
     return await deleteDoc(docRef);
+  },
+
+  async deleteAll() {
+    const snap = await getDocs(collection(db, 'menus'));
+    const batch = writeBatch(db);
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
   }
 };
 
 export const promoService = {
-  async getAll() {
-    const q = query(collection(db, 'promos'), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Promo));
+  async getAll(): Promise<Promo[]> {
+    try {
+      const q = query(collection(db, 'promos'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return [];
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Promo));
+    } catch (error) {
+      console.warn("Firestore promo query error:", error);
+      return [];
+    }
   },
 
-  async getActive() {
-    const q = query(collection(db, 'promos'), where('active', '==', true));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Promo));
+  async getActive(): Promise<Promo[]> {
+    try {
+      const q = query(collection(db, 'promos'), where('active', '==', true));
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return [];
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Promo));
+    } catch (e) {
+      return [];
+    }
   },
 
   async add(promo: Omit<Promo, 'id' | 'createdAt'>) {
@@ -73,47 +130,73 @@ export const promoService = {
   async delete(id: string) {
     const docRef = doc(db, 'promos', id);
     return await deleteDoc(docRef);
+  },
+
+  async deleteAll() {
+    const snap = await getDocs(collection(db, 'promos'));
+    const batch = writeBatch(db);
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
   }
 };
 
 export const orderService = {
-  async getAll() {
-    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+  async getAll(): Promise<Order[]> {
+    try {
+      const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+    } catch (e) {
+      console.warn("Could not fetch all orders:", e);
+      return [];
+    }
   },
 
-  async add(order: Omit<any, 'id' | 'createdAt'>) {
+  async getUserOrders(userId: string): Promise<Order[]> {
+    try {
+      const q = query(collection(db, 'orders'), where('userId', '==', userId), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+    } catch (e) {
+      // Fallback in case index is not built
+      try {
+        const q2 = query(collection(db, 'orders'), where('userId', '==', userId));
+        const snapshot2 = await getDocs(q2);
+        return snapshot2.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
+      } catch (err) {
+        console.warn("Could not fetch user orders:", err);
+        return [];
+      }
+    }
+  },
+
+  async add(order: Omit<Order, 'id' | 'createdAt'>) {
     return await addDoc(collection(db, 'orders'), {
       ...order,
+      status: order.status || 'Pending',
       createdAt: serverTimestamp(),
     });
   },
 
-  async updateStatus(id: string, status: string) {
+  async updateStatus(id: string, status: OrderStatus) {
     const docRef = doc(db, 'orders', id);
-    return await updateDoc(docRef, { status });
+    return await updateDoc(docRef, { status, updatedAt: serverTimestamp() });
+  },
+
+  async delete(id: string) {
+    const docRef = doc(db, 'orders', id);
+    return await deleteDoc(docRef);
   }
 };
 
 export const chatService = {
-  async getOrCreateRoom(userId: string, userName: string, userEmail: string) {
+  async getOrCreateRoom(userId: string, userName?: string | null, userEmail?: string | null) {
     const docRef = doc(db, 'chats', userId);
-    // Use set with merge to ensure the room info is up to date
-    await updateDoc(docRef, {
-      userName,
-      userEmail,
+    await setDoc(docRef, {
+      userName: userName || 'Pelanggan',
+      userEmail: userEmail || '',
       lastUpdatedAt: serverTimestamp()
-    }).catch(async () => {
-      // If doc doesn't exist, create it
-      const { setDoc } = await import('firebase/firestore');
-      await setDoc(docRef, {
-        userName,
-        userEmail,
-        lastUpdatedAt: serverTimestamp(),
-        createdAt: serverTimestamp()
-      });
-    });
+    }, { merge: true });
     return userId;
   },
 
@@ -126,12 +209,11 @@ export const chatService = {
       timestamp: serverTimestamp()
     });
     
-    // Update last message in room
     const roomRef = doc(db, 'chats', roomId);
-    await updateDoc(roomRef, {
+    await setDoc(roomRef, {
       lastMessage: text,
       lastUpdatedAt: serverTimestamp()
-    });
+    }, { merge: true });
   },
 
   listenRooms(callback: (rooms: ChatRoom[]) => void) {
@@ -139,7 +221,7 @@ export const chatService = {
     return onSnapshot(q, (snapshot) => {
       const rooms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatRoom));
       callback(rooms);
-    });
+    }, (err) => console.warn("Chat listen rooms err:", err));
   },
 
   listenMessages(roomId: string, callback: (messages: ChatMessage[]) => void) {
@@ -147,6 +229,52 @@ export const chatService = {
     return onSnapshot(q, (snapshot) => {
       const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage));
       callback(messages);
-    });
+    }, (err) => console.warn("Chat listen messages err:", err));
   }
 };
+
+export const databaseResetService = {
+  /**
+   * Reset the database: clears old menu items & promos, then seeds fresh default catalog.
+   */
+  async resetAndSeedDatabase(): Promise<{ success: boolean; menusCount: number; promosCount: number }> {
+    try {
+      // 1. Clear existing menus & promos
+      await menuService.deleteAll().catch(() => null);
+      await promoService.deleteAll().catch(() => null);
+
+      // 2. Seed default menus
+      const batch = writeBatch(db);
+      for (const item of DEFAULT_MENUS) {
+        const { id, ...data } = item;
+        const newDocRef = doc(collection(db, 'menus'));
+        batch.set(newDocRef, {
+          ...data,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      // 3. Seed default promos
+      for (const promo of DEFAULT_PROMOS) {
+        const { id, ...data } = promo;
+        const newDocRef = doc(collection(db, 'promos'));
+        batch.set(newDocRef, {
+          ...data,
+          createdAt: serverTimestamp()
+        });
+      }
+
+      await batch.commit();
+
+      return {
+        success: true,
+        menusCount: DEFAULT_MENUS.length,
+        promosCount: DEFAULT_PROMOS.length
+      };
+    } catch (error) {
+      console.error("Failed to reset and seed database:", error);
+      throw error;
+    }
+  }
+};
+

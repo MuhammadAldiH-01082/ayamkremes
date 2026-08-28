@@ -1,5 +1,6 @@
 import React from 'react';
-import { UtensilsCrossed, MessageCircle, MapPin, Phone, Mail, Instagram, ArrowUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { UtensilsCrossed, MessageCircle, MapPin, Phone, Mail, Instagram, ArrowUp, Lock } from 'lucide-react';
 import { CONTACT_INFO } from '@/data/defaultCatalogue';
 
 export default function Footer() {
@@ -123,7 +124,17 @@ export default function Footer() {
 
         {/* Bottom copyright */}
         <div className="pt-8 border-t border-stone-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
-          <p>© {new Date().getFullYear()} {CONTACT_INFO.brandName}. Hak Cipta Dilindungi.</p>
+          <div className="flex items-center gap-2">
+            <p>© {new Date().getFullYear()} {CONTACT_INFO.brandName}. Hak Cipta Dilindungi.</p>
+            {/* Discreet access for site owner */}
+            <Link 
+              to="/admin" 
+              className="text-stone-700 hover:text-stone-400 transition-colors p-1"
+              title="Staff Access"
+            >
+              <Lock className="w-3 h-3 opacity-40 hover:opacity-100" />
+            </Link>
+          </div>
           <div className="flex items-center gap-4">
             <span className="text-[#88AB58] font-bold">100% Halal & Higienis</span>
             <button 

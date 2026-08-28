@@ -1,5 +1,19 @@
 {
   "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Profil pengguna pelanggan atau admin",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string", "description": "Nama pengguna" },
+        "email": { "type": "string", "description": "Email pengguna" },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "Peran pengguna" },
+        "phone": { "type": "string", "description": "Nomor WhatsApp" },
+        "address": { "type": "string", "description": "Alamat pengiriman default" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role"]
+    },
     "Menu": {
       "title": "Catering Menu",
       "description": "Daftar menu catering Ayam Kremes Jakarta",
@@ -11,17 +25,10 @@
         "category": { "type": "string", "description": "Kategori menu" },
         "imageUrl": { "type": "string", "description": "URL gambar menu" },
         "isMain": { "type": "boolean", "description": "Apakah ini menu utama" },
-        "variations": {
-          "type": "array",
-          "description": "Variasi porsi atau isi",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": { "type": "string" },
-              "price": { "type": "number" }
-            }
-          }
-        },
+        "spiceLevel": { "type": "number", "description": "Tingkat kepedasan" },
+        "badge": { "type": "string", "description": "Label khusus" },
+        "portion": { "type": "string", "description": "Porsi" },
+        "minOrder": { "type": "number", "description": "Minimal order" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "category", "price"]
@@ -45,13 +52,23 @@
       "description": "Pesanan pelanggan katering",
       "type": "object",
       "properties": {
+        "userId": { "type": "string" },
         "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
         "customerEmail": { "type": "string" },
+        "deliveryAddress": { "type": "string" },
+        "eventType": { "type": "string" },
+        "eventDate": { "type": "string" },
+        "eventTime": { "type": "string" },
+        "paxCount": { "type": "number" },
+        "selectedPackage": { "type": "string" },
+        "notes": { "type": "string" },
         "items": { "type": "array" },
         "totalAmount": { "type": "number" },
-        "status": { "type": "string", "enum": ["Pending", "Processing", "Completed", "Cancelled"] },
+        "status": { "type": "string", "enum": ["Pending", "Diproses", "Dikirim", "Selesai", "Dibatalkan"] },
         "createdAt": { "type": "string", "format": "date-time" }
-      }
+      },
+      "required": ["customerName", "customerEmail", "status"]
     },
     "ChatMessage": {
       "title": "Chat Message",
@@ -62,10 +79,15 @@
         "senderName": { "type": "string" },
         "text": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" }
-      }
+      },
+      "required": ["senderId", "text"]
     }
   },
   "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Koleksi profil pengguna (user & admin)"
+    },
     "menus/{menuId}": {
       "schema": "Menu",
       "description": "Koleksi menu catering"
@@ -76,11 +98,11 @@
     },
     "orders/{orderId}": {
       "schema": "Order",
-      "description": "Koleksi pesanan"
+      "description": "Koleksi pesanan pelanggan"
     },
     "chats/{userId}": {
       "schema": "object",
-      "description": "Ruang obrolan pengguna"
+      "description": "Ruang obrolan pengguna dengan customer service"
     },
     "chats/{userId}/messages/{messageId}": {
       "schema": "ChatMessage",
